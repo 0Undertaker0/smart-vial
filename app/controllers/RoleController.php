@@ -18,6 +18,7 @@ class RoleController
     {
         require_permission('role_create');
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            require_csrf();
             $nombre = $_POST['nombre'] ?? '';
             $m = new Model();
             $m->query('INSERT INTO roles (nombre) VALUES (?)', 's', [$nombre]);
@@ -48,6 +49,7 @@ class RoleController
     public function savePermissions()
     {
         require_permission('role_assign');
+        require_csrf();
         $role_id = $_POST['role_id'] ?? null;
         $perms = $_POST['permisos'] ?? [];
         $m = new Model();

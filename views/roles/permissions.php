@@ -1,6 +1,7 @@
 <?php require __DIR__ . '/../layout/header.php'; ?>
 <h4>Permisos para rol <?= e($_GET['id'] ?? '') ?></h4>
 <form method="post" action="?c=role&a=savePermissions">
+  <?= csrf_input() ?>
   <input type="hidden" name="role_id" value="<?= e($_GET['id'] ?? '') ?>">
   <div class="row">
     <?php foreach($all as $p): ?>

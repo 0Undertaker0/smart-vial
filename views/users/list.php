@@ -6,15 +6,25 @@
   <?php endif; ?>
 </div>
 <table class="table table-striped">
-  <thead><tr><th>ID</th><th>Nombre</th><th>Email</th><th>Activo</th><th></th></tr></thead>
+  <thead><tr><th>ID</th><th>Nombre</th><th>Email</th><th>Rol</th><th>Activo</th><th></th></tr></thead>
   <tbody>
     <?php foreach($users as $u): ?>
     <tr>
       <td><?= e($u['id']) ?></td>
       <td><?= e($u['nombre']) ?></td>
       <td><?= e($u['email']) ?></td>
+      <td><?= e($u['role_name'] ?? 'N/A') ?></td>
       <td><?= e($u['activo']) ?></td>
-      <td><?php if (user_has_permission('user_delete')): ?><a class="btn btn-sm btn-danger" href="?c=user&a=delete&id=<?= $u['id'] ?>">Eliminar</a><?php endif; ?></td>
+      <td>
+        <?php if (user_has_permission('user_edit')): ?><a class="btn btn-sm btn-primary" href="?c=user&a=edit&id=<?= $u['id'] ?>">Editar</a><?php endif; ?>
+        <?php if (user_has_permission('user_delete')): ?>
+          <form method="post" action="?c=user&a=delete" style="display:inline" onsubmit="return confirm('Eliminar usuario?')">
+            <?= csrf_input() ?>
+            <input type="hidden" name="id" value="<?= $u['id'] ?>">
+            <button class="btn btn-sm btn-danger">Eliminar</button>
+          </form>
+        <?php endif; ?>
+      </td>
     </tr>
     <?php endforeach; ?>
   </tbody>

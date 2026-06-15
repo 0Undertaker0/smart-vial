@@ -27,7 +27,7 @@ switch ($c) {
     case 'user':
         require_once __DIR__ . '/../app/controllers/UserController.php';
         $ctl = new UserController();
-        if ($a === 'create') $ctl->create(); elseif ($a === 'delete') $ctl->delete(); else $ctl->index();
+        if ($a === 'create') $ctl->create(); elseif ($a === 'edit') $ctl->edit(); elseif ($a === 'delete') $ctl->delete(); else $ctl->index();
         break;
     case 'incident':
         require_once __DIR__ . '/../app/controllers/IncidentController.php';

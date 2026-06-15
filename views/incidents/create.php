@@ -1,6 +1,7 @@
 <?php require __DIR__ . '/../layout/header.php'; ?>
 <h4>Registrar incidente</h4>
 <form method="post" action="" enctype="multipart/form-data">
+  <?= csrf_input() ?>
   <div class="mb-3"><label>Título</label><input class="form-control" name="titulo" required></div>
   <div class="mb-3"><label>Descripción</label><textarea class="form-control" name="descripcion" rows="4"></textarea></div>
   <div class="mb-3"><label>Gravedad</label>

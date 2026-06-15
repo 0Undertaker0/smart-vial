@@ -18,6 +18,7 @@ class IncidentController
     {
         require_permission('incident_create');
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            require_csrf();
             $titulo = $_POST['titulo'];
             $descripcion = $_POST['descripcion'];
             $lat = $_POST['lat'] ?? null;
@@ -31,11 +32,26 @@ class IncidentController
             if (!empty($_FILES['foto']['name'][0])) {
                 $uploads = __DIR__ . '/../../uploads/';
                 if (!is_dir($uploads)) mkdir($uploads, 0755, true);
+                $allowed = ['image/jpeg','image/png','image/gif','image/webp'];
+                $finfo = finfo_open(FILEINFO_MIME_TYPE);
                 foreach ($_FILES['foto']['tmp_name'] as $k => $tmp) {
-                    $name = time() . '_' . basename($_FILES['foto']['name'][$k]);
-                    move_uploaded_file($tmp, $uploads . $name);
-                    $m->query('INSERT INTO fotografias (incidente_id,archivo,fecha) VALUES (?,?,NOW())', 'is', [$last,$name]);
+                    if (!is_uploaded_file($tmp)) continue;
+                    $size = filesize($tmp);
+                    if ($size > 5 * 1024 * 1024) continue; // skip >5MB
+                    $mime = finfo_file($finfo, $tmp);
+                    if (!in_array($mime, $allowed)) continue;
+                    $ext = '';
+                    switch ($mime) {
+                        case 'image/jpeg': $ext = '.jpg'; break;
+                        case 'image/png': $ext = '.png'; break;
+                        case 'image/gif': $ext = '.gif'; break;
+                        case 'image/webp': $ext = '.webp'; break;
+                    }
+                    $safeName = bin2hex(random_bytes(8)) . $ext;
+                    move_uploaded_file($tmp, $uploads . $safeName);
+                    $m->query('INSERT INTO fotografias (incidente_id,archivo,fecha) VALUES (?,?,NOW())', 'is', [$last,$safeName]);
                 }
+                finfo_close($finfo);
             }
             header('Location: ../public/?c=incident');
             exit;

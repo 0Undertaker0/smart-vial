@@ -18,6 +18,7 @@ class PermisoController
     {
         require_permission('permiso_create');
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            require_csrf();
             $clave = $_POST['clave'] ?? '';
             $descripcion = $_POST['descripcion'] ?? '';
             $m = new Model();
@@ -34,6 +35,7 @@ class PermisoController
         $id = $_GET['id'] ?? null;
         $m = new Model();
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            require_csrf();
             $clave = $_POST['clave'];
             $descripcion = $_POST['descripcion'];
             $m->query('UPDATE permisos SET clave=?, descripcion=? WHERE id=?', 'ssi', [$clave,$descripcion,$id]);
@@ -48,7 +50,8 @@ class PermisoController
     public function delete()
     {
         require_permission('permiso_delete');
-        $id = $_GET['id'] ?? null;
+        $id = $_POST['id'] ?? $_GET['id'] ?? null;
+        if ($_SERVER['REQUEST_METHOD'] === 'POST') require_csrf();
         if ($id) {
             $m = new Model();
             $m->query('DELETE FROM permisos WHERE id=?', 'i', [$id]);

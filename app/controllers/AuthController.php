@@ -12,7 +12,10 @@ class AuthController
             $res = $m->query('SELECT id, nombre, email, password, role_id FROM usuarios WHERE email = ? LIMIT 1', 's', [$email]);
             if ($row = $res->fetch_assoc()) {
                 if (password_verify($password, $row['password'])) {
+                    // Regenerate session id on login to prevent fixation
+                    session_regenerate_id(true);
                     $_SESSION['user'] = ['id'=>$row['id'],'nombre'=>$row['nombre'],'email'=>$row['email'],'role_id'=>$row['role_id']];
+                    $_SESSION['last_login'] = date('c');
                     header('Location: ../public/?c=dashboard');
                     exit;
                 }

@@ -13,7 +13,13 @@
       <td><?= e($p['descripcion']) ?></td>
       <td>
         <?php if (user_has_permission('permiso_edit')): ?><a class="btn btn-sm btn-primary" href="?c=permiso&a=edit&id=<?= $p['id'] ?>">Editar</a><?php endif; ?>
-        <?php if (user_has_permission('permiso_delete')): ?><a class="btn btn-sm btn-danger" href="?c=permiso&a=delete&id=<?= $p['id'] ?>" onclick="return confirm('Eliminar permiso?')">Eliminar</a><?php endif; ?>
+        <?php if (user_has_permission('permiso_delete')): ?>
+          <form method="post" action="?c=permiso&a=delete" style="display:inline" onsubmit="return confirm('Eliminar permiso?')">
+            <?= csrf_input() ?>
+            <input type="hidden" name="id" value="<?= $p['id'] ?>">
+            <button class="btn btn-sm btn-danger">Eliminar</button>
+          </form>
+        <?php endif; ?>
       </td>
     </tr>
     <?php endforeach; ?>
