@@ -13,10 +13,10 @@ class AuthController
             if ($row = $res->fetch_assoc()) {
                 if (password_verify($password, $row['password'])) {
                     // Regenerate session id on login to prevent fixation
-                    session_regenerate_id(true);
-                    $_SESSION['user'] = ['id'=>$row['id'],'nombre'=>$row['nombre'],'email'=>$row['email'],'role_id'=>$row['role_id']];
-                    $_SESSION['last_login'] = date('c');
-                    header('Location: ../public/?c=dashboard');
+                        session_regenerate_id(true);
+                        $_SESSION['user'] = ['id'=>$row['id'],'nombre'=>$row['nombre'],'email'=>$row['email'],'role_id'=>$row['role_id']];
+                        $_SESSION['last_login'] = date('c');
+                        header('Location: ?c=dashboard');
                     exit;
                 }
             }
@@ -30,7 +30,7 @@ class AuthController
     public function logout()
     {
         session_destroy();
-        header('Location: ../public/');
+        header('Location: ?c=auth');
         exit;
     }
 }

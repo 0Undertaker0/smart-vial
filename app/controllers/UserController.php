@@ -29,7 +29,7 @@ class UserController
             $password = password_hash($_POST['password'], PASSWORD_DEFAULT);
             $role_id = (int)($_POST['role_id'] ?? 2);
             $m->query('INSERT INTO usuarios (nombre,email,password,activo,role_id) VALUES (?,?,?,?,?)', 'sssii', [$nombre,$email,$password,1,$role_id]);
-            header('Location: ../public/?c=user');
+            header('Location: ?c=user');
             exit;
         }
         require __DIR__ . '/../../views/users/create.php';
@@ -45,7 +45,7 @@ class UserController
             // Soft delete
             $m->query('UPDATE usuarios SET activo = 0 WHERE id = ?', 'i', [$id]);
         }
-        header('Location: ../public/?c=user');
+        header('Location: ?c=user');
     }
 
     public function edit()
@@ -64,7 +64,7 @@ class UserController
             } else {
                 $m->query('UPDATE usuarios SET nombre=?, email=?, role_id=? WHERE id=?', 'ssii', [$nombre,$email,$role_id,$id]);
             }
-            header('Location: ../public/?c=user');
+            header('Location: ?c=user');
             exit;
         }
 

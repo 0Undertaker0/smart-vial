@@ -71,7 +71,7 @@ function is_logged_in() {
 
 function require_login() {
     if (!is_logged_in()) {
-        header('Location: ../public/');
+        header('Location: ?c=auth');
         exit;
     }
 }

@@ -23,7 +23,7 @@ class PermisoController
             $descripcion = $_POST['descripcion'] ?? '';
             $m = new Model();
             $m->query('INSERT INTO permisos (clave,descripcion) VALUES (?,?)', 'ss', [$clave,$descripcion]);
-            header('Location: ../public/?c=permiso');
+            header('Location: ?c=permiso');
             exit;
         }
         require __DIR__ . '/../../views/permisos/create.php';
@@ -39,7 +39,7 @@ class PermisoController
             $clave = $_POST['clave'];
             $descripcion = $_POST['descripcion'];
             $m->query('UPDATE permisos SET clave=?, descripcion=? WHERE id=?', 'ssi', [$clave,$descripcion,$id]);
-            header('Location: ../public/?c=permiso');
+            header('Location: ?c=permiso');
             exit;
         }
         $res = $m->query('SELECT id,clave,descripcion FROM permisos WHERE id=? LIMIT 1', 'i', [$id]);
@@ -56,6 +56,6 @@ class PermisoController
             $m = new Model();
             $m->query('DELETE FROM permisos WHERE id=?', 'i', [$id]);
         }
-        header('Location: ../public/?c=permiso');
+        header('Location: ?c=permiso');
     }
 }

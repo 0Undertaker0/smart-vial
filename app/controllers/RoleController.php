@@ -22,7 +22,7 @@ class RoleController
             $nombre = $_POST['nombre'] ?? '';
             $m = new Model();
             $m->query('INSERT INTO roles (nombre) VALUES (?)', 's', [$nombre]);
-            header('Location: ../public/?c=role');
+            header('Location: ?c=role');
             exit;
         }
         require __DIR__ . '/../../views/roles/create.php';
@@ -57,7 +57,7 @@ class RoleController
         foreach ($perms as $p) {
             $m->query('INSERT INTO roles_permisos (role_id,permiso_id) VALUES (?,?)', 'ii', [$role_id,$p]);
         }
-        header('Location: ../public/?c=role');
+        header('Location: ?c=role');
         exit;
     }
 }

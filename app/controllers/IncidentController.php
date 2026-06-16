@@ -8,9 +8,85 @@ class IncidentController
     {
         require_permission('incident_view');
         $m = new Model();
-        $res = $m->query('SELECT i.id,i.titulo,i.fecha,i.gravedad,u.nombre as reportante FROM incidentes i LEFT JOIN usuarios u ON i.user_id = u.id ORDER BY i.fecha DESC');
+
+        // Detect AJAX requests
+        $isAjax = (isset($_GET['ajax']) && $_GET['ajax'] == '1') || (!empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) === 'xmlhttprequest');
+
+        // Check which optional columns exist to keep backward-compatibility
+        $cols = [];
+        $check = $m->db->query("SHOW COLUMNS FROM incidentes");
+        $existing = [];
+        if ($check) {
+            while ($c = $check->fetch_assoc()) $existing[] = $c['Field'];
+        }
+        $has = function($name) use ($existing) { return in_array($name, $existing); };
+
+        // Build select list with graceful NULLs if column missing
+        $selectParts = [
+            'i.id','i.titulo','i.fecha','i.gravedad','u.nombre as reportante'
+        ];
+        $joins = ['LEFT JOIN usuarios u ON i.user_id = u.id'];
+        if ($has('departamento')) $selectParts[] = 'i.departamento'; else $selectParts[] = "NULL as departamento";
+        if ($has('municipio')) $selectParts[] = 'i.municipio'; else $selectParts[] = "NULL as municipio";
+        if ($has('zona')) $selectParts[] = 'i.zona'; else $selectParts[] = "NULL as zona";
+        if ($has('tipo_evento')) $selectParts[] = 'i.tipo_evento'; else $selectParts[] = "NULL as tipo_evento";
+        if ($has('estado_tramite')) $selectParts[] = 'i.estado_tramite'; else $selectParts[] = "NULL as estado_tramite";
+        if ($has('responsable_agente_id')) {
+            $selectParts[] = 'ra.nombre as responsable';
+            $joins[] = 'LEFT JOIN usuarios ra ON ra.id = i.responsable_agente_id';
+        } else {
+            $selectParts[] = "NULL as responsable";
+        }
+        if ($has('responsable_unidad')) $selectParts[] = 'i.responsable_unidad'; else $selectParts[] = "NULL as responsable_unidad";
+
+        $sql = 'SELECT ' . implode(',', $selectParts) . ' FROM incidentes i ' . implode(' ', $joins);
+
+        // Build dynamic WHERE
+        $conds = ['i.activo = 1'];
+        $types = '';
+        $params = [];
+
+        // Filters (GET)
+        if ($has('departamento') && !empty($_GET['departamento'])) { $conds[] = 'i.departamento = ?'; $types .= 's'; $params[] = $_GET['departamento']; }
+        if ($has('municipio') && !empty($_GET['municipio'])) { $conds[] = 'i.municipio = ?'; $types .= 's'; $params[] = $_GET['municipio']; }
+        if ($has('zona') && !empty($_GET['zona'])) { $conds[] = 'i.zona LIKE ?'; $types .= 's'; $params[] = '%' . $_GET['zona'] . '%'; }
+        if (!empty($_GET['fecha_inicio'])) { $conds[] = 'i.fecha >= ?'; $types .= 's'; $params[] = $_GET['fecha_inicio'] . ' 00:00:00'; }
+        if (!empty($_GET['fecha_fin'])) { $conds[] = 'i.fecha <= ?'; $types .= 's'; $params[] = $_GET['fecha_fin'] . ' 23:59:59'; }
+        if (!empty($_GET['gravedad'])) { $conds[] = 'i.gravedad = ?'; $types .= 's'; $params[] = $_GET['gravedad']; }
+        if ($has('responsable_agente_id') && !empty($_GET['responsable_agente_id'])) { $conds[] = 'i.responsable_agente_id = ?'; $types .= 'i'; $params[] = (int)$_GET['responsable_agente_id']; }
+        if ($has('responsable_unidad') && !empty($_GET['responsable_unidad'])) { $conds[] = 'i.responsable_unidad = ?'; $types .= 's'; $params[] = $_GET['responsable_unidad']; }
+        if ($has('estado_tramite') && !empty($_GET['estado_tramite'])) { $conds[] = 'i.estado_tramite = ?'; $types .= 's'; $params[] = $_GET['estado_tramite']; }
+        if ($has('tipo_evento') && !empty($_GET['tipo_evento'])) { $conds[] = 'i.tipo_evento = ?'; $types .= 's'; $params[] = $_GET['tipo_evento']; }
+
+        $sql .= ' WHERE ' . implode(' AND ', $conds) . ' ORDER BY i.fecha DESC';
+
+        // Execute
+        $res = null;
+        if ($types !== '') $res = $m->query($sql, $types, $params); else $res = $m->query($sql);
         $incidents = [];
         while ($r = $res->fetch_assoc()) $incidents[] = $r;
+
+        if ($isAjax) {
+            header('Content-Type: application/json');
+            echo json_encode($incidents);
+            exit;
+        }
+
+        // For non-AJAX render: prepare select lists (only if columns exist)
+        $departamentos = [];
+        if ($has('departamento')) {
+            $rd = $m->query('SELECT DISTINCT departamento FROM incidentes WHERE departamento IS NOT NULL AND departamento<>""');
+            while ($row = $rd->fetch_assoc()) $departamentos[] = $row['departamento'];
+        }
+        $municipios = [];
+        if ($has('municipio')) {
+            $rm = $m->query('SELECT DISTINCT municipio FROM incidentes WHERE municipio IS NOT NULL AND municipio<>""');
+            while ($row = $rm->fetch_assoc()) $municipios[] = $row['municipio'];
+        }
+        $agentes = [];
+        $ra = $m->query('SELECT id,nombre FROM usuarios WHERE role_id = 2');
+        while ($row = $ra->fetch_assoc()) $agentes[] = $row;
+
         require __DIR__ . '/../../views/incidents/list.php';
     }
 
@@ -53,7 +129,7 @@ class IncidentController
                 }
                 finfo_close($finfo);
             }
-            header('Location: ../public/?c=incident');
+            header('Location: ?c=incident');
             exit;
         }
         require __DIR__ . '/../../views/incidents/create.php';
