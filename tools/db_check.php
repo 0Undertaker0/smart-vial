@@ -1,5 +1,5 @@
 <?php
-// Diagnostic script: lists database connection and first users
+// Diagnostic script MySQL de SMARTVIAL. Verifica la conexión y muestra algunos registros de la tabla usuarios.
 require_once __DIR__ . '/../app/config.php';
 
 echo "SMARTVIAL DB diagnostic\n";
