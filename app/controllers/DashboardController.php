@@ -44,6 +44,7 @@ class DashboardController
                     SELECT COUNT(*) FROM incidentes WHERE activo = 1
                 "),
                 'totalLeves' => $this->contar("SELECT COUNT(*) FROM incidentes WHERE activo = 1 AND gravedad = 'baja'"),
+                'totalMedias' => $this->contar("SELECT COUNT(*) FROM incidentes WHERE activo = 1 AND gravedad = 'media'"),
                 'totalGraves' => $this->contar("SELECT COUNT(*) FROM incidentes WHERE activo = 1 AND gravedad = 'alta'"),
                 'totalFatales' => $this->contar("
                     SELECT COUNT(*) FROM incidentes

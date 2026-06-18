@@ -19,6 +19,7 @@
       <option value="alta" <?= (isset($incidente['gravedad']) && $incidente['gravedad']==='alta')? 'selected':'' ?>>alta</option>
       <option value="media" <?= (isset($incidente['gravedad']) && $incidente['gravedad']==='media')? 'selected':'' ?>>media</option>
       <option value="baja" <?= (isset($incidente['gravedad']) && $incidente['gravedad']==='baja')? 'selected':'' ?>>baja</option>
+      <option value="fatal" <?= (isset($incidente['gravedad']) && $incidente['gravedad']==='fatal')? 'selected':'' ?>>fatal</option>
     </select>
   </div>
   
@@ -33,7 +34,7 @@
       <input class="form-control" name="lat" id="lat" placeholder="Latitud" value="<?= htmlspecialchars((string)($incidente['lat'] ?? '')) ?>">
       <input class="form-control" name="lng" id="lng" placeholder="Longitud" value="<?= htmlspecialchars((string)($incidente['lng'] ?? '')) ?>">
       <button id="getLocation" class="btn btn-outline-secondary" type="button" onclick="obtenerUbicacion()">
-        <i class="bi bi-geo-alt"></i> Usar GPS
+        <i class="fa-solid fa-location-dot"></i> Usar GPS
       </button>
     </div>
     <div class="mb-2">

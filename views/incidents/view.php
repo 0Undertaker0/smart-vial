@@ -29,11 +29,11 @@
                         <span class="text-muted">Gravedad:</span>
                         <?php 
                             $badgeColor = 'bg-secondary';
-                                $grav = strtolower($incidente['gravedad'] ?? '');
-                                // Normalize different possible values
-                                if(in_array($grav, ['baja','leve'])) $badgeColor = 'bg-success';
-                                if(in_array($grav, ['media','grave'])) $badgeColor = 'bg-warning text-dark';
-                                if(in_array($grav, ['alta','fatal'])) $badgeColor = 'bg-danger';
+                            $grav = strtolower($incidente['gravedad'] ?? '');
+                            // Normalize different possible values to canonical: baja, media, alta, fatal
+                            if (in_array($grav, ['baja','leve'])) $badgeColor = 'bg-success';
+                            if (in_array($grav, ['media','moderada','moderado'])) $badgeColor = 'bg-warning text-dark';
+                            if (in_array($grav, ['alta','grave','fatal'])) $badgeColor = 'bg-danger';
                         ?>
                         <span class="badge <?= $badgeColor ?> px-3 py-2 text-uppercase">
                             <?= htmlspecialchars((string)$incidente['gravedad']) ?>

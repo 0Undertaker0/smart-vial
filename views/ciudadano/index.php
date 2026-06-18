@@ -89,9 +89,9 @@
                                     <?php 
                                         $badgeColor = 'bg-secondary';
                                         $grav = strtolower($incidente['gravedad'] ?? '');
-                                        if($grav === 'leve') $badgeColor = 'bg-success';
-                                        if($grav === 'grave') $badgeColor = 'bg-warning text-dark';
-                                        if($grav === 'fatal') $badgeColor = 'bg-danger';
+                                        if (in_array($grav, ['baja','leve'])) $badgeColor = 'bg-success';
+                                        if (in_array($grav, ['media','moderada','moderado'])) $badgeColor = 'bg-warning text-dark';
+                                        if (in_array($grav, ['alta','grave','fatal'])) $badgeColor = 'bg-danger';
                                     ?>
                                     <span class="badge <?= $badgeColor ?> px-3 py-2 text-uppercase">
                                         <?= htmlspecialchars((string)$incidente['gravedad']) ?>

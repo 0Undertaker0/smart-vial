@@ -23,6 +23,13 @@
 
   <div class="col-md-4 col-lg-2">
     <div class="card p-3 h-100">
+      <h6 class="text-muted mb-1">Medias</h6>
+      <h2 class="mb-0 text-info"><?= htmlspecialchars((string) $totalMedias) ?></h2>
+    </div>
+  </div>
+
+  <div class="col-md-4 col-lg-2">
+    <div class="card p-3 h-100">
       <h6 class="text-muted mb-1">Graves</h6>
       <h2 class="mb-0 text-warning"><?= htmlspecialchars((string) $totalGraves) ?></h2>
     </div>
@@ -132,12 +139,12 @@ document.addEventListener('DOMContentLoaded', function() {
         if (!isNaN(lat) && !isNaN(lng)) {
             const marker = L.marker([lat, lng]).addTo(map);
             
-            // Asignar colores de Bootstrap para las insignias del Popup
+            // Asignar colores de Bootstrap para las insignias del Popup (acepta sinónimos)
             let badgeColor = 'bg-secondary';
             const gravedadStr = (incidente.gravedad || '').toLowerCase();
-            if(gravedadStr === 'leve') badgeColor = 'bg-success';
-            if(gravedadStr === 'grave') badgeColor = 'bg-warning text-dark';
-            if(gravedadStr === 'fatal') badgeColor = 'bg-danger';
+            if (['baja','leve'].includes(gravedadStr)) badgeColor = 'bg-success';
+            else if (['media','moderada','moderado'].includes(gravedadStr)) badgeColor = 'bg-warning text-dark';
+            else if (['alta','grave','fatal'].includes(gravedadStr)) badgeColor = 'bg-danger';
 
             // Construir el contenido del Popup (ID, Título, Fecha, Gravedad)
             const popupContent = `
