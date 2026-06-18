@@ -29,6 +29,12 @@ class UserController
             $password = password_hash($_POST['password'], PASSWORD_DEFAULT);
             $role_id = (int)($_POST['role_id'] ?? 2);
             $m->query('INSERT INTO usuarios (nombre,email,password,activo,role_id) VALUES (?,?,?,?,?)', 'sssii', [$nombre,$email,$password,1,$role_id]);
+            
+            // --- AUDITORÍA: 3. Creación de usuarios ---
+            $nuevo_id = $m->db->insert_id;
+            $usuario_actual = $_SESSION['user']['id'] ?? 0;
+            $m->query('INSERT INTO auditoria (usuario_id, accion, tabla_afectada, registro_id) VALUES (?, ?, ?, ?)', 'issi', [$usuario_actual, 'Creación de usuario', 'usuarios', $nuevo_id]);
+
             header('Location: ?c=user');
             exit;
         }
@@ -44,6 +50,10 @@ class UserController
             $m = new Model();
             // Soft delete
             $m->query('UPDATE usuarios SET activo = 0 WHERE id = ?', 'i', [$id]);
+            
+            // --- AUDITORÍA: 5. Eliminación de usuarios ---
+            $usuario_actual = $_SESSION['user']['id'] ?? 0;
+            $m->query('INSERT INTO auditoria (usuario_id, accion, tabla_afectada, registro_id) VALUES (?, ?, ?, ?)', 'issi', [$usuario_actual, 'Eliminación de usuario', 'usuarios', $id]);
         }
         header('Location: ?c=user');
     }
@@ -64,6 +74,11 @@ class UserController
             } else {
                 $m->query('UPDATE usuarios SET nombre=?, email=?, role_id=? WHERE id=?', 'ssii', [$nombre,$email,$role_id,$id]);
             }
+            
+            // --- AUDITORÍA: 4. Edición de usuarios ---
+            $usuario_actual = $_SESSION['user']['id'] ?? 0;
+            $m->query('INSERT INTO auditoria (usuario_id, accion, tabla_afectada, registro_id) VALUES (?, ?, ?, ?)', 'issi', [$usuario_actual, 'Edición de usuario', 'usuarios', $id]);
+
             header('Location: ?c=user');
             exit;
         }

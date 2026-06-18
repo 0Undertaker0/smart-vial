@@ -8,15 +8,6 @@
  *
  * NO modifica login, roles, permisos ni ningún otro módulo existente.
  * Reutiliza Model.php y getDb()/require_login() ya definidos en config.php.
- *
- * SUPUESTOS A VERIFICAR (ajustar solo si no coinciden con tus datos reales):
- *  1. Se filtra activo = 1 en todas las tarjetas (asumiendo que así se excluyen
- *     incidentes eliminados/desactivados en el resto del sistema).
- *  2. "Cerrados" se calcula con estado_tramite = 'cerrado'. Si el valor real
- *     guardado es otro (ej. 'Finalizado', 'Archivado'), cambia esa línea.
- *     Tip: SELECT DISTINCT estado_tramite FROM incidentes; para confirmar.
- *  3. gravedad usa 'leve' / 'grave' / 'fatal'. La comparación es insensible a
- *     mayúsculas porque la tabla usa collation utf8mb4_unicode_ci.
  */
 
 require_once __DIR__ . '/../Model.php';
@@ -43,9 +34,7 @@ class DashboardController
     }
 
     /**
-     * Ejecuta las 6 consultas de conteo requeridas.
-     * Si falla alguna consulta, retorna '--' en cada tarjeta en lugar de
-     * interrumpir la carga de la vista.
+     * Ejecuta las consultas requeridas incluyendo la del Mapa.
      */
     private function obtenerKpis(): array
     {
@@ -76,6 +65,8 @@ class DashboardController
                     SELECT COUNT(*) FROM incidentes
                     WHERE activo = 1 AND estado_tramite = 'cerrado'
                 "),
+                // NUEVO: Ejecuta la consulta para obtener marcadores del mapa
+                'jsonMapa' => $this->obtenerDatosMapa(),
                 'error' => null,
             ];
         } catch (Exception $e) {
@@ -88,6 +79,7 @@ class DashboardController
                 'totalFatales'    => '--',
                 'totalEsteMes'    => '--',
                 'totalCerrados'   => '--',
+                'jsonMapa'        => '[]', // Seguro anti-fallos en JS
                 'error'           => 'No se pudo cargar la información del dashboard.',
             ];
         }
@@ -101,5 +93,32 @@ class DashboardController
         $res = $this->model->query($sql);
         $row = $res->fetch_row();
         return (int) ($row[0] ?? 0);
+    }
+
+    /**
+     * NUEVO: Consulta exclusiva para alimentar el mapa de Leaflet.
+     * Ignora cualquier incidente que no tenga coordenadas válidas.
+     */
+    private function obtenerDatosMapa(): string
+    {
+        $sql = "SELECT id, titulo, fecha, gravedad, lat, lng 
+                FROM incidentes 
+                WHERE activo = 1 
+                  AND lat IS NOT NULL 
+                  AND lng IS NOT NULL";
+                  
+        $res = $this->model->query($sql);
+        $data = [];
+        
+        if ($res) {
+            while ($row = $res->fetch_assoc()) {
+                // Doble validación: solo se añaden si son números reales
+                if (is_numeric($row['lat']) && is_numeric($row['lng'])) {
+                    $data[] = $row;
+                }
+            }
+        }
+        
+        return json_encode($data);
     }
 }

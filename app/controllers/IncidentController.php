@@ -104,6 +104,10 @@ class IncidentController
             $m = new Model();
             $m->query('INSERT INTO incidentes (titulo,descripcion,lat,lng,gravedad,user_id,fecha,activo) VALUES (?,?,?,?,?,? ,NOW(),1)', 'ssddsi', [$titulo,$descripcion,(float)$lat,(float)$lng,$gravedad,(int)$user_id]);
             $last = $m->db->insert_id;
+            
+            // --- AUDITORÍA: 6. Creación de incidentes ---
+            $m->query('INSERT INTO auditoria (usuario_id, accion, tabla_afectada, registro_id) VALUES (?, ?, ?, ?)', 'issi', [$user_id, 'Creación de incidente', 'incidentes', $last]);
+
             // Handle file uploads
             if (!empty($_FILES['foto']['name'][0])) {
                 $uploads = __DIR__ . '/../../uploads/';
@@ -133,5 +137,114 @@ class IncidentController
             exit;
         }
         require __DIR__ . '/../../views/incidents/create.php';
+    }
+
+    public function view()
+    {
+        require_permission('incident_view');
+        
+        if (!isset($_GET['id']) || empty($_GET['id'])) {
+            header('Location: ?c=incident');
+            exit;
+        }
+
+        $id = (int)$_GET['id'];
+        $m = new Model();
+
+        // 1. Obtener detalles del incidente (verificando compatibilidad de columnas)
+        $check = $m->db->query("SHOW COLUMNS FROM incidentes");
+        $existing = [];
+        if ($check) {
+            while ($c = $check->fetch_assoc()) $existing[] = $c['Field'];
+        }
+        $has = function($name) use ($existing) { return in_array($name, $existing); };
+
+        $selectParts = [
+            'i.id', 'i.titulo', 'i.descripcion', 'i.fecha', 'i.gravedad', 'i.lat', 'i.lng', 'u.nombre as reportante'
+        ];
+        
+        if ($has('departamento')) $selectParts[] = 'i.departamento'; else $selectParts[] = "NULL as departamento";
+        if ($has('municipio')) $selectParts[] = 'i.municipio'; else $selectParts[] = "NULL as municipio";
+        if ($has('tipo_evento')) $selectParts[] = 'i.tipo_evento'; else $selectParts[] = "NULL as tipo_evento";
+        if ($has('estado_tramite')) $selectParts[] = 'i.estado_tramite'; else $selectParts[] = "NULL as estado_tramite";
+
+        $sqlIncidente = 'SELECT ' . implode(',', $selectParts) . ' 
+                         FROM incidentes i 
+                         LEFT JOIN usuarios u ON i.user_id = u.id 
+                         WHERE i.id = ? AND i.activo = 1';
+        
+        $resIncidente = $m->query($sqlIncidente, 'i', [$id]);
+        $incidente = $resIncidente->fetch_assoc();
+
+        if (!$incidente) {
+            header('Location: ?c=incident');
+            exit;
+        }
+
+        // 2. Obtener las fotografías asociadas a este incidente
+        $resFotos = $m->query('SELECT id, archivo, fecha FROM fotografias WHERE incidente_id = ? ORDER BY fecha DESC', 'i', [$id]);
+        $fotografias = [];
+        while ($f = $resFotos->fetch_assoc()) {
+            $fotografias[] = $f;
+        }
+
+        // Renderizar la vista
+        require __DIR__ . '/../../views/incidents/view.php';
+    }
+
+    /**
+     * NUEVO MÉTODO: Edición de incidente con auditoría (Requisito 7)
+     */
+    public function edit()
+    {
+        require_permission('incident_edit');
+        $id = (int)($_GET['id'] ?? 0);
+        $m = new Model();
+        
+        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            require_csrf();
+            // Adaptar los campos según los disponibles en la vista real (edit.php)
+            $titulo = $_POST['titulo'] ?? '';
+            $descripcion = $_POST['descripcion'] ?? '';
+            $gravedad = $_POST['gravedad'] ?? 'media';
+            
+            $m->query('UPDATE incidentes SET titulo=?, descripcion=?, gravedad=? WHERE id=?', 'sssi', [$titulo, $descripcion, $gravedad, $id]);
+            
+            // --- AUDITORÍA: 7. Modificación de incidentes ---
+            $usuario_actual = $_SESSION['user']['id'] ?? 0;
+            $m->query('INSERT INTO auditoria (usuario_id, accion, tabla_afectada, registro_id) VALUES (?, ?, ?, ?)', 'issi', [$usuario_actual, 'Modificación de incidente', 'incidentes', $id]);
+            
+            header('Location: ?c=incident');
+            exit;
+        }
+        
+        $res = $m->query('SELECT * FROM incidentes WHERE id = ? LIMIT 1', 'i', [$id]);
+        $incidente = $res->fetch_assoc();
+        require __DIR__ . '/../../views/incidents/edit.php';
+    }
+
+    /**
+     * NUEVO MÉTODO: Eliminación de incidente con auditoría (Requisito 8)
+     */
+    public function delete()
+    {
+        require_permission('incident_delete');
+        $id = $_POST['id'] ?? $_GET['id'] ?? null;
+        
+        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            require_csrf();
+        }
+        
+        if ($id) {
+            $m = new Model();
+            $m->query('UPDATE incidentes SET activo = 0 WHERE id = ?', 'i', [$id]);
+            
+            // --- AUDITORÍA: 8. Eliminación de incidentes ---
+            $usuario_actual = $_SESSION['user']['id'] ?? 0;
+            $m->query('INSERT INTO auditoria (usuario_id, accion, tabla_afectada, registro_id) VALUES (?, ?, ?, ?)', 'issi', [$usuario_actual, 'Eliminación de incidente', 'incidentes', $id]);
+        }
+        
+        header('Location: ?c=incident');
+        exit;
     }
 }
