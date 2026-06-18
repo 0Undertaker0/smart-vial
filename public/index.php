@@ -13,7 +13,9 @@ switch ($c) {
         break;
         
     case 'dashboard':
-        require __DIR__ . '/../views/dashboard/admin.php';
+        require_once __DIR__ . '/../app/controllers/DashboardController.php';
+        $ctl = new DashboardController();
+        $ctl->index();
         break;
         
     case 'role':

@@ -1,6 +1,131 @@
 </div>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-<script src="../assets/js/app.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<script src="../../assets/js/app.js"></script>
+<script>
+// Variable global para el mapa
+var mapa = null;
+var marcador = null;
+
+function obtenerUbicacion() {
+  console.log("✓ obtenerUbicacion() ejecutada");
+  var btn = event.target.closest('button');
+  
+  if (!navigator.geolocation) {
+    alert('Tu navegador no soporta geolocalización.');
+    return;
+  }
+  
+  var textoOriginal = btn.innerHTML;
+  btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Buscando ubicación...';
+  btn.disabled = true;
+  
+  navigator.geolocation.getCurrentPosition(
+    function(position) {
+      console.log("✓ Ubicación obtenida:", position.coords.latitude, position.coords.longitude);
+      
+      var lat = position.coords.latitude;
+      var lng = position.coords.longitude;
+      
+      // Llenar campos
+      document.getElementById('lat').value = lat;
+      document.getElementById('lng').value = lng;
+      
+      // Mostrar mapa
+      mostrarMapa(lat, lng);
+      
+      // Feedback visual
+      btn.innerHTML = '<i class="bi bi-check-circle"></i> ¡Ubicación capturada!';
+      btn.classList.remove('btn-outline-secondary');
+      btn.classList.add('btn-success', 'text-white');
+      
+      setTimeout(function(){
+        btn.innerHTML = textoOriginal;
+        btn.disabled = false;
+        btn.classList.remove('btn-success', 'text-white');
+        btn.classList.add('btn-outline-secondary');
+      }, 3000);
+    },
+    function(error) {
+      console.error("❌ Error GPS:", error.code);
+      var msg = "Error al obtener la ubicación";
+      
+      switch(error.code) {
+        case 1:
+          msg = "Permiso denegado. Ve a los permisos de tu navegador y permite el acceso a ubicación.";
+          break;
+        case 2:
+          msg = "La información de ubicación no está disponible.";
+          break;
+        case 3:
+          msg = "Se agotó el tiempo esperando la ubicación.";
+          break;
+      }
+      
+      alert(msg);
+      btn.innerHTML = textoOriginal;
+      btn.disabled = false;
+    },
+    { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+  );
+}
+
+function mostrarMapa(lat, lng) {
+  var mapContainer = document.getElementById('mapContainer');
+  var mapElement = document.getElementById('map');
+  
+  // Mostrar contenedor del mapa
+  mapContainer.style.display = 'block';
+  
+  // Si el mapa ya existe, eliminarlo
+  if (mapa) {
+    mapa.remove();
+  }
+  
+  // Crear mapa
+  mapa = L.map('map').setView([lat, lng], 17);
+  
+  // Agregar OpenStreetMap
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    attribution: '© OpenStreetMap contributors',
+    maxZoom: 19
+  }).addTo(mapa);
+  
+  // Agregar marcador
+  if (marcador) {
+    mapa.removeLayer(marcador);
+  }
+  
+  marcador = L.marker([lat, lng], {
+    icon: L.icon({
+      iconUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon.png',
+      shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png',
+      iconSize: [25, 41],
+      shadowSize: [41, 41]
+    })
+  }).addTo(mapa).bindPopup('Cargando dirección...');
+
+  marcador.openPopup();
+
+  // Llamar a Nominatim para reverse geocoding (OpenStreetMap)
+  fetch('https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat='+lat+'&lon='+lng)
+    .then(function(resp){ return resp.json(); })
+    .then(function(data){
+      var display = data.display_name || '';
+      // Poner la dirección en el input
+      var direccionInput = document.getElementById('direccion');
+      if (direccionInput) direccionInput.value = display;
+      // Actualizar popup del marcador
+      marcador.setPopupContent(display + '<br>Lat: ' + lat.toFixed(6) + '<br>Lng: ' + lng.toFixed(6));
+    })
+    .catch(function(err){
+      console.warn('Reverse geocoding falló', err);
+    });
+
+  console.log("✓ Mapa mostrado en:", lat, lng);
+}
+</script>
+
 </body>
 </html>
