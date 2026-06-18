@@ -32,7 +32,7 @@
     <div class="input-group mb-2">
       <input class="form-control" name="lat" id="lat" placeholder="Latitud">
       <input class="form-control" name="lng" id="lng" placeholder="Longitud">
-      <button class="btn btn-outline-secondary" type="button" onclick="obtenerUbicacion()">
+      <button id="getLocation" class="btn btn-outline-secondary" type="button" onclick="obtenerUbicacion()">
         <i class="bi bi-geo-alt"></i> Usar GPS
       </button>
     </div>

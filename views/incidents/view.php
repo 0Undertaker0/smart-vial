@@ -29,10 +29,11 @@
                         <span class="text-muted">Gravedad:</span>
                         <?php 
                             $badgeColor = 'bg-secondary';
-                            $grav = strtolower($incidente['gravedad'] ?? '');
-                            if($grav === 'leve') $badgeColor = 'bg-success';
-                            if($grav === 'grave') $badgeColor = 'bg-warning text-dark';
-                            if($grav === 'fatal') $badgeColor = 'bg-danger';
+                                $grav = strtolower($incidente['gravedad'] ?? '');
+                                // Normalize different possible values
+                                if(in_array($grav, ['baja','leve'])) $badgeColor = 'bg-success';
+                                if(in_array($grav, ['media','grave'])) $badgeColor = 'bg-warning text-dark';
+                                if(in_array($grav, ['alta','fatal'])) $badgeColor = 'bg-danger';
                         ?>
                         <span class="badge <?= $badgeColor ?> px-3 py-2 text-uppercase">
                             <?= htmlspecialchars((string)$incidente['gravedad']) ?>
@@ -73,6 +74,14 @@
                         </span>
                     </li>
                     <?php endif; ?>
+                        <?php if(!empty($incidente['direccion'])): ?>
+                        <li class="list-group-item px-0 d-flex justify-content-between align-items-center">
+                            <span class="text-muted">Dirección:</span>
+                            <span class="fw-medium text-end" style="font-size: 0.9em;">
+                                <?= htmlspecialchars((string)$incidente['direccion']) ?>
+                            </span>
+                        </li>
+                        <?php endif; ?>
                 </ul>
             </div>
         </div>

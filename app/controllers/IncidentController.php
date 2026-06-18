@@ -99,10 +99,11 @@ class IncidentController
             $descripcion = $_POST['descripcion'];
             $lat = $_POST['lat'] ?? null;
             $lng = $_POST['lng'] ?? null;
+            $direccion = $_POST['direccion'] ?? null;
             $gravedad = $_POST['gravedad'] ?? 'media';
             $user_id = $_SESSION['user']['id'] ?? 0;
             $m = new Model();
-            $m->query('INSERT INTO incidentes (titulo,descripcion,lat,lng,gravedad,user_id,fecha,activo) VALUES (?,?,?,?,?,? ,NOW(),1)', 'ssddsi', [$titulo,$descripcion,(float)$lat,(float)$lng,$gravedad,(int)$user_id]);
+            $m->query('INSERT INTO incidentes (titulo,descripcion,lat,lng,direccion,gravedad,user_id,fecha,activo) VALUES (?,?,?,?,?,?,? ,NOW(),1)', 'ssddssi', [$titulo,$descripcion,(float)$lat,(float)$lng,$direccion,$gravedad,(int)$user_id]);
             $last = $m->db->insert_id;
             
             // --- AUDITORÍA: 6. Creación de incidentes ---
@@ -160,7 +161,7 @@ class IncidentController
         $has = function($name) use ($existing) { return in_array($name, $existing); };
 
         $selectParts = [
-            'i.id', 'i.titulo', 'i.descripcion', 'i.fecha', 'i.gravedad', 'i.lat', 'i.lng', 'u.nombre as reportante'
+            'i.id', 'i.titulo', 'i.descripcion', 'i.fecha', 'i.gravedad', 'i.lat', 'i.lng', 'i.direccion', 'u.nombre as reportante'
         ];
         
         if ($has('departamento')) $selectParts[] = 'i.departamento'; else $selectParts[] = "NULL as departamento";
@@ -207,8 +208,11 @@ class IncidentController
             $titulo = $_POST['titulo'] ?? '';
             $descripcion = $_POST['descripcion'] ?? '';
             $gravedad = $_POST['gravedad'] ?? 'media';
+            $lat = $_POST['lat'] ?? null;
+            $lng = $_POST['lng'] ?? null;
+            $direccion = $_POST['direccion'] ?? null;
             
-            $m->query('UPDATE incidentes SET titulo=?, descripcion=?, gravedad=? WHERE id=?', 'sssi', [$titulo, $descripcion, $gravedad, $id]);
+            $m->query('UPDATE incidentes SET titulo=?, descripcion=?, gravedad=?, lat=?, lng=?, direccion=? WHERE id=?', 'sssddsi', [$titulo, $descripcion, $gravedad, (float)$lat, (float)$lng, $direccion, $id]);
             
             // --- AUDITORÍA: 7. Modificación de incidentes ---
             $usuario_actual = $_SESSION['user']['id'] ?? 0;

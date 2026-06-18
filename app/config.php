@@ -6,6 +6,9 @@ define('DB_PASS', '');
 define('DB_NAME', 'smartvial');
 define('DB_CHARSET', 'utf8mb4');
 
+// Email para consultas a Nominatim (OpenStreetMap) — cámbialo por tu email real en producción
+define('NOMINATIM_EMAIL', 'dev@smartvial.local');
+
 function getDb()
 {
     $mysqli = new mysqli(DB_HOST, DB_USER, DB_PASS, DB_NAME);

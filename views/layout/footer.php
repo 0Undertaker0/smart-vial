@@ -109,7 +109,8 @@ function mostrarMapa(lat, lng) {
   marcador.openPopup();
 
   // Llamar a Nominatim para reverse geocoding (OpenStreetMap)
-  fetch('https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat='+lat+'&lon='+lng)
+  var nominatimEmail = '<?php echo addslashes(NOMINATIM_EMAIL); ?>';
+  fetch('https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat='+lat+'&lon='+lng+'&accept-language=es&email='+encodeURIComponent(nominatimEmail))
     .then(function(resp){ return resp.json(); })
     .then(function(data){
       var display = data.display_name || '';

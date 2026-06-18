@@ -15,3 +15,9 @@ CREATE INDEX idx_incidentes_fecha ON incidentes(fecha);
 CREATE INDEX idx_incidentes_gravedad ON incidentes(gravedad);
 CREATE INDEX idx_incidentes_tipo_evento ON incidentes(tipo_evento);
 CREATE INDEX idx_incidentes_estado_tramite ON incidentes(estado_tramite);
+
+-- Añadir columna para almacenar la dirección legible (reverse-geocoding)
+ALTER TABLE incidentes
+  ADD COLUMN direccion VARCHAR(512) NULL AFTER lng;
+
+-- Nota: ejecutar este archivo desde tu cliente MySQL (o usar tools/apply_migrations.php)

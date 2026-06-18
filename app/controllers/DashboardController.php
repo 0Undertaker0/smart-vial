@@ -43,14 +43,8 @@ class DashboardController
                 'totalIncidentes' => $this->contar("
                     SELECT COUNT(*) FROM incidentes WHERE activo = 1
                 "),
-                'totalLeves' => $this->contar("
-                    SELECT COUNT(*) FROM incidentes
-                    WHERE activo = 1 AND gravedad = 'leve'
-                "),
-                'totalGraves' => $this->contar("
-                    SELECT COUNT(*) FROM incidentes
-                    WHERE activo = 1 AND gravedad = 'grave'
-                "),
+                'totalLeves' => $this->contar("SELECT COUNT(*) FROM incidentes WHERE activo = 1 AND gravedad = 'baja'"),
+                'totalGraves' => $this->contar("SELECT COUNT(*) FROM incidentes WHERE activo = 1 AND gravedad = 'alta'"),
                 'totalFatales' => $this->contar("
                     SELECT COUNT(*) FROM incidentes
                     WHERE activo = 1 AND gravedad = 'fatal'
@@ -101,7 +95,7 @@ class DashboardController
      */
     private function obtenerDatosMapa(): string
     {
-        $sql = "SELECT id, titulo, fecha, gravedad, lat, lng 
+        $sql = "SELECT id, titulo, fecha, gravedad, lat, lng, direccion 
                 FROM incidentes 
                 WHERE activo = 1 
                   AND lat IS NOT NULL 
