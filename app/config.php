@@ -96,12 +96,54 @@ function user_has_permission($clave)
     return $has;
 }
 
+function is_ajax_request()
+{
+    if (!empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) === 'xmlhttprequest') return true;
+    if (isset($_REQUEST['ajax']) && (string)$_REQUEST['ajax'] === '1') return true;
+    return false;
+}
+
 function require_permission($clave)
 {
     require_login();
     if (!user_has_permission($clave)) {
-        http_response_code(403);
-        echo '<div class="container mt-5"><div class="alert alert-danger">Acceso denegado. Permiso requerido: '.e($clave).'</div></div>';
+        $msg = 'No tienes permiso para realizar esta acción (permiso: ' . e($clave) . '). Pide al administrador que vaya a "Permisos" y asigne este permiso a tu perfil.';
+
+        if (is_ajax_request()) {
+            header('Content-Type: application/json', true, 403);
+            echo json_encode(['error' => true, 'message' => $msg]);
+            exit;
+        }
+
+        // For normal requests: set a flash message and redirect back (or to dashboard)
+        $_SESSION['flash'] = ['type' => 'warning', 'message' => $msg];
+        $redirect = $_SERVER['HTTP_REFERER'] ?? '?c=dashboard';
+        header('Location: ' . $redirect);
         exit;
     }
+}
+
+// Role helpers: map roles to visible menus/actions and provide convenience checks
+function get_role_menu_map()
+{
+    // Keys are lowercased role names. Adjust mapping as needed.
+    return [
+        'pnc' => ['incident','dashboard','admin'],
+        'vmt' => ['dashboard','incident'],
+        'ministerio de salud' => ['dashboard','ciudadano']
+    ];
+}
+
+function current_role_name()
+{
+    return strtolower($_SESSION['user']['role_name'] ?? '');
+}
+
+function role_allows_menu($key)
+{
+    $role = current_role_name();
+    if (!$role) return false;
+    $map = get_role_menu_map();
+    if (!isset($map[$role])) return false;
+    return in_array($key, $map[$role]);
 }

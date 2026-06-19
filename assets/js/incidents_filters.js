@@ -43,26 +43,132 @@ document.addEventListener('DOMContentLoaded', function(){
     if (!tableBody) return;
     tableBody.innerHTML = '';
     if (!data || data.length===0) {
-      tableBody.innerHTML = '<tr><td colspan="5">No hay registros</td></tr>';
+      tableBody.innerHTML = '<tr><td colspan="6">No hay registros</td></tr>';
       return;
     }
     for (const it of data) {
       const tr = document.createElement('tr');
-      tr.innerHTML = `<td>${escapeHtml(it.id)}</td><td>${escapeHtml(it.titulo)}</td><td>${escapeHtml(it.fecha)}</td><td>${escapeHtml(it.gravedad)}</td><td>${escapeHtml(it.reportante)}</td>`;
+      const perms = window.__PERMS || {};
+      let actions = '';
+      if (perms.incident_edit) {
+        actions += `<a class="btn btn-sm btn-primary me-1 edit-btn" href="?c=incident&a=edit&id=${encodeURIComponent(it.id)}" data-id="${escapeHtml(it.id)}">Editar</a>`;
+      }
+      if (perms.incident_delete) {
+        actions += `<button type="button" class="btn btn-sm btn-danger delete-btn" data-id="${escapeHtml(it.id)}">Eliminar</button>`;
+      }
+      tr.innerHTML = `<td>${escapeHtml(it.id)}</td><td>${escapeHtml(it.titulo)}</td><td>${escapeHtml(it.fecha)}</td><td>${escapeHtml(it.gravedad)}</td><td>${escapeHtml(it.reportante)}</td><td>${actions}</td>`;
       tableBody.appendChild(tr);
     }
   }
 
+  // Delegate click handler for dynamic delete buttons (AJAX delete)
+  tableBody.addEventListener('click', function(e){
+    const target = e.target;
+    if (!target.classList.contains('delete-btn')) return;
+    if (!confirm('¿Eliminar este incidente? Esta acción puede revertirse desde administración.')) return;
+    const id = target.getAttribute('data-id');
+    const fd = new FormData();
+    fd.append('id', id);
+    fd.append('csrf_token', window.__CSRF || '');
+    fetch(`${window.location.pathname}?c=incident&a=delete`, { method: 'POST', credentials: 'same-origin', body: fd, headers: {'X-Requested-With': 'XMLHttpRequest'} })
+      .then(async res => {
+        if (!res.ok) {
+          const err = await res.json().catch(()=>({message:'Error'}));
+          throw new Error(err.message || 'Error al eliminar');
+        }
+        // remove row
+        const tr = target.closest('tr');
+        if (tr) tr.remove();
+      })
+      .catch(err => alert(err.message || 'Error al eliminar'));
+  });
+
+  // Handle Edit button (delegated) to open modal and load data via AJAX
+  tableBody.addEventListener('click', function(e){
+    const target = e.target.closest('.edit-btn');
+    if (!target) return;
+    e.preventDefault();
+    const id = target.getAttribute('data-id');
+    if (!id) return;
+    // Fetch incident JSON
+    const curr = new URL(window.location.href);
+    const currentController = curr.searchParams.get('c') || 'incident';
+    const url = `${window.location.pathname}?c=${encodeURIComponent(currentController)}&a=view&id=${encodeURIComponent(id)}&ajax=1`;
+    fetch(url, { credentials: 'same-origin', headers: {'X-Requested-With': 'XMLHttpRequest'} })
+      .then(async res => {
+        if (!res.ok) {
+          const err = await res.json().catch(()=>({message:'Error al obtener registro'}));
+          throw new Error(err.message || 'Error');
+        }
+        return res.json();
+      })
+      .then(data => {
+        // Fill modal
+        document.getElementById('edit_id').value = data.id || '';
+        document.getElementById('edit_titulo').value = data.titulo || '';
+        document.getElementById('edit_descripcion').value = data.descripcion || '';
+        document.getElementById('edit_gravedad').value = data.gravedad || 'media';
+        document.getElementById('edit_lat').value = data.lat || '';
+        document.getElementById('edit_lng').value = data.lng || '';
+        document.getElementById('edit_direccion').value = data.direccion || '';
+        // Show modal (Bootstrap 5)
+        var myModal = new bootstrap.Modal(document.getElementById('editIncidentModal'));
+        myModal.show();
+      })
+      .catch(err => alert(err.message || 'Error al cargar incidente'));
+  });
+
+  // Save edit from modal
+  const saveBtn = document.getElementById('saveEditBtn');
+  if (saveBtn) {
+    saveBtn.addEventListener('click', function(){
+      const form = document.getElementById('editIncidentForm');
+      const fd = new FormData(form);
+      const id = fd.get('id');
+      fd.append('csrf_token', window.__CSRF || '');
+      const url = `${window.location.pathname}?c=incident&a=edit&id=${encodeURIComponent(id)}`;
+      fetch(url, { method: 'POST', credentials: 'same-origin', body: fd, headers: {'X-Requested-With': 'XMLHttpRequest'} })
+        .then(async res => {
+          if (!res.ok) {
+            const err = await res.json().catch(()=>({message:'Error al guardar'}));
+            throw new Error(err.message || 'Error');
+          }
+          return res.json().catch(()=>({ok:true}));
+        })
+        .then(() => {
+          // Close modal
+          var modalEl = document.getElementById('editIncidentModal');
+          var modal = bootstrap.Modal.getInstance(modalEl);
+          if (modal) modal.hide();
+          // Refresh table
+          const filters = readFiltersFromForm() || {};
+          fetchAndUpdate(filters);
+        })
+        .catch(err => alert(err.message || 'Error al guardar cambios'));
+    });
+  }
+
   async function fetchAndUpdate(filters) {
     const qs = buildQuery(filters);
-    const url = `${window.location.pathname}?${qs}`;
+    // Ensure we include the current controller param (c) so request lands on the same route
+    const curr = new URL(window.location.href);
+    const currentController = curr.searchParams.get('c') || 'incident';
+    const url = `${window.location.pathname}?c=${encodeURIComponent(currentController)}&${qs}`;
     try {
-      const res = await fetch(url, {headers: {'X-Requested-With': 'XMLHttpRequest'}});
-      if (!res.ok) throw new Error('HTTP ' + res.status);
+      const res = await fetch(url, {credentials: 'same-origin', headers: {'X-Requested-With': 'XMLHttpRequest'}});
+      if (!res.ok) {
+        // Try to read JSON error message, otherwise fallback
+        let msg = 'Error al cargar datos (HTTP ' + res.status + ')';
+        try { const err = await res.json(); if (err && err.message) msg = err.message; } catch(e) { /* ignore */ }
+        alert(msg);
+        updateTable([]);
+        return;
+      }
       const data = await res.json();
       updateTable(data);
     } catch(e) {
       console.error('Error fetching incidents', e);
+      alert('Error de red al obtener incidentes');
     }
   }
 
@@ -72,10 +178,28 @@ document.addEventListener('DOMContentLoaded', function(){
     fetchAndUpdate(filters);
   });
 
-  clearBtn.addEventListener('click', function(){
+  clearBtn.addEventListener('click', async function(){
     sessionStorage.removeItem(storageKey);
     form.reset();
-    fetchAndUpdate({});
+    // Llamar al servidor para que borre filtros guardados en sesión y actualizar la tabla
+    const curr = new URL(window.location.href);
+    const currentController = curr.searchParams.get('c') || 'incident';
+    const url = `${window.location.pathname}?c=${encodeURIComponent(currentController)}&ajax=1&clear_filters=1`;
+    try {
+      const res = await fetch(url, { credentials: 'same-origin', headers: {'X-Requested-With': 'XMLHttpRequest'} });
+      if (!res.ok) {
+        let err = await res.json().catch(()=>({message:'Error'}));
+        alert(err.message || 'Error al limpiar filtros');
+        return;
+      }
+      const data = await res.json();
+      updateTable(data);
+      // Also update URL to remove filter params for clarity
+      try { history.replaceState({}, document.title, window.location.pathname + '?c=' + encodeURIComponent(currentController)); } catch(e) { /* ignore */ }
+    } catch(e) {
+      console.error(e);
+      alert('Error de red al limpiar filtros');
+    }
   });
 
   // Restore on load

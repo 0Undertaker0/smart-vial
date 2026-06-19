@@ -12,6 +12,31 @@ class IncidentController
         // Detect AJAX requests
         $isAjax = (isset($_GET['ajax']) && $_GET['ajax'] == '1') || (!empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) === 'xmlhttprequest');
 
+        // Persistir filtros en la sesión del usuario para mantenerlos entre vistas
+        $filterKeys = ['departamento','municipio','zona','fecha_inicio','fecha_fin','gravedad','responsable_agente_id','responsable_unidad','estado_tramite','tipo_evento'];
+        $storedFilters = $_SESSION['incident_filters'] ?? [];
+        $hasAnyGetFilters = false;
+        foreach ($filterKeys as $fk) { if (isset($_GET[$fk])) { $hasAnyGetFilters = true; break; } }
+
+        // If clear requested, remove stored filters
+        if (isset($_GET['clear_filters']) && ($_GET['clear_filters'] == '1' || $_GET['clear_filters'] === 1)) {
+            unset($_SESSION['incident_filters']);
+            $storedFilters = [];
+        }
+
+        // Build applied filters: GET overrides stored session values
+        $filters = [];
+        foreach ($filterKeys as $fk) {
+            if (isset($_GET[$fk]) && $_GET[$fk] !== '') $filters[$fk] = $_GET[$fk];
+            elseif (isset($storedFilters[$fk]) && $storedFilters[$fk] !== '') $filters[$fk] = $storedFilters[$fk];
+            else $filters[$fk] = null;
+        }
+
+        // Update session if user provided filters (including AJAX apply)
+        if ($hasAnyGetFilters) {
+            $_SESSION['incident_filters'] = $filters;
+        }
+
         // Check which optional columns exist to keep backward-compatibility
         $cols = [];
         $check = $m->db->query("SHOW COLUMNS FROM incidentes");
@@ -46,17 +71,17 @@ class IncidentController
         $types = '';
         $params = [];
 
-        // Filters (GET)
-        if ($has('departamento') && !empty($_GET['departamento'])) { $conds[] = 'i.departamento = ?'; $types .= 's'; $params[] = $_GET['departamento']; }
-        if ($has('municipio') && !empty($_GET['municipio'])) { $conds[] = 'i.municipio = ?'; $types .= 's'; $params[] = $_GET['municipio']; }
-        if ($has('zona') && !empty($_GET['zona'])) { $conds[] = 'i.zona LIKE ?'; $types .= 's'; $params[] = '%' . $_GET['zona'] . '%'; }
-        if (!empty($_GET['fecha_inicio'])) { $conds[] = 'i.fecha >= ?'; $types .= 's'; $params[] = $_GET['fecha_inicio'] . ' 00:00:00'; }
-        if (!empty($_GET['fecha_fin'])) { $conds[] = 'i.fecha <= ?'; $types .= 's'; $params[] = $_GET['fecha_fin'] . ' 23:59:59'; }
-        if (!empty($_GET['gravedad'])) { $conds[] = 'i.gravedad = ?'; $types .= 's'; $params[] = $_GET['gravedad']; }
-        if ($has('responsable_agente_id') && !empty($_GET['responsable_agente_id'])) { $conds[] = 'i.responsable_agente_id = ?'; $types .= 'i'; $params[] = (int)$_GET['responsable_agente_id']; }
-        if ($has('responsable_unidad') && !empty($_GET['responsable_unidad'])) { $conds[] = 'i.responsable_unidad = ?'; $types .= 's'; $params[] = $_GET['responsable_unidad']; }
-        if ($has('estado_tramite') && !empty($_GET['estado_tramite'])) { $conds[] = 'i.estado_tramite = ?'; $types .= 's'; $params[] = $_GET['estado_tramite']; }
-        if ($has('tipo_evento') && !empty($_GET['tipo_evento'])) { $conds[] = 'i.tipo_evento = ?'; $types .= 's'; $params[] = $_GET['tipo_evento']; }
+        // Filters (applied from GET or session)
+        if ($has('departamento') && !empty($filters['departamento'])) { $conds[] = 'i.departamento = ?'; $types .= 's'; $params[] = $filters['departamento']; }
+        if ($has('municipio') && !empty($filters['municipio'])) { $conds[] = 'i.municipio = ?'; $types .= 's'; $params[] = $filters['municipio']; }
+        if ($has('zona') && !empty($filters['zona'])) { $conds[] = 'i.zona LIKE ?'; $types .= 's'; $params[] = '%' . $filters['zona'] . '%'; }
+        if (!empty($filters['fecha_inicio'])) { $conds[] = 'i.fecha >= ?'; $types .= 's'; $params[] = $filters['fecha_inicio'] . ' 00:00:00'; }
+        if (!empty($filters['fecha_fin'])) { $conds[] = 'i.fecha <= ?'; $types .= 's'; $params[] = $filters['fecha_fin'] . ' 23:59:59'; }
+        if (!empty($filters['gravedad'])) { $conds[] = 'i.gravedad = ?'; $types .= 's'; $params[] = $filters['gravedad']; }
+        if ($has('responsable_agente_id') && !empty($filters['responsable_agente_id'])) { $conds[] = 'i.responsable_agente_id = ?'; $types .= 'i'; $params[] = (int)$filters['responsable_agente_id']; }
+        if ($has('responsable_unidad') && !empty($filters['responsable_unidad'])) { $conds[] = 'i.responsable_unidad = ?'; $types .= 's'; $params[] = $filters['responsable_unidad']; }
+        if ($has('estado_tramite') && !empty($filters['estado_tramite'])) { $conds[] = 'i.estado_tramite = ?'; $types .= 's'; $params[] = $filters['estado_tramite']; }
+        if ($has('tipo_evento') && !empty($filters['tipo_evento'])) { $conds[] = 'i.tipo_evento = ?'; $types .= 's'; $params[] = $filters['tipo_evento']; }
 
         $sql .= ' WHERE ' . implode(' AND ', $conds) . ' ORDER BY i.fecha DESC';
 
@@ -143,7 +168,7 @@ class IncidentController
     public function view()
     {
         require_permission('incident_view');
-        
+
         if (!isset($_GET['id']) || empty($_GET['id'])) {
             header('Location: ?c=incident');
             exit;
@@ -178,7 +203,19 @@ class IncidentController
         $incidente = $resIncidente->fetch_assoc();
 
         if (!$incidente) {
+            if (is_ajax_request()) {
+                header('Content-Type: application/json', true, 404);
+                echo json_encode(['error' => true, 'message' => 'Incidente no encontrado']);
+                exit;
+            }
             header('Location: ?c=incident');
+            exit;
+        }
+
+        // If AJAX requested, return JSON for editing
+        if (is_ajax_request()) {
+            header('Content-Type: application/json');
+            echo json_encode($incidente);
             exit;
         }
 
@@ -201,7 +238,8 @@ class IncidentController
         require_permission('incident_edit');
         $id = (int)($_GET['id'] ?? 0);
         $m = new Model();
-        
+        $isAjax = is_ajax_request();
+
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             require_csrf();
             // Adaptar los campos según los disponibles en la vista real (edit.php)
@@ -211,13 +249,19 @@ class IncidentController
             $lat = $_POST['lat'] ?? null;
             $lng = $_POST['lng'] ?? null;
             $direccion = $_POST['direccion'] ?? null;
-            
+
             $m->query('UPDATE incidentes SET titulo=?, descripcion=?, gravedad=?, lat=?, lng=?, direccion=? WHERE id=?', 'sssddsi', [$titulo, $descripcion, $gravedad, (float)$lat, (float)$lng, $direccion, $id]);
-            
+
             // --- AUDITORÍA: 7. Modificación de incidentes ---
             $usuario_actual = $_SESSION['user']['id'] ?? 0;
             $m->query('INSERT INTO auditoria (usuario_id, accion, tabla_afectada, registro_id) VALUES (?, ?, ?, ?)', 'issi', [$usuario_actual, 'Modificación de incidente', 'incidentes', $id]);
-            
+
+            if ($isAjax) {
+                header('Content-Type: application/json');
+                echo json_encode(['ok' => true]);
+                exit;
+            }
+
             header('Location: ?c=incident');
             exit;
         }
@@ -234,11 +278,13 @@ class IncidentController
     {
         require_permission('incident_delete');
         $id = $_POST['id'] ?? $_GET['id'] ?? null;
+        $isAjax = is_ajax_request();
         
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             require_csrf();
         }
         
+        $ok = false;
         if ($id) {
             $m = new Model();
             $m->query('UPDATE incidentes SET activo = 0 WHERE id = ?', 'i', [$id]);
@@ -246,8 +292,15 @@ class IncidentController
             // --- AUDITORÍA: 8. Eliminación de incidentes ---
             $usuario_actual = $_SESSION['user']['id'] ?? 0;
             $m->query('INSERT INTO auditoria (usuario_id, accion, tabla_afectada, registro_id) VALUES (?, ?, ?, ?)', 'issi', [$usuario_actual, 'Eliminación de incidente', 'incidentes', $id]);
+            $ok = true;
         }
-        
+
+        if ($isAjax) {
+            header('Content-Type: application/json');
+            echo json_encode(['ok' => $ok]);
+            exit;
+        }
+
         header('Location: ?c=incident');
         exit;
     }

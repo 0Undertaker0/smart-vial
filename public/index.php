@@ -1,6 +1,13 @@
 <?php
 require_once __DIR__ . '/../app/config.php';
 
+// Development helper: reset OPcache when requested (use only in local/dev)
+if (isset($_GET['__clear_opcache']) && $_GET['__clear_opcache'] === 'dev-clear') {
+    if (function_exists('opcache_reset')) {
+        opcache_reset();
+    }
+}
+
 $c = $_GET['c'] ?? 'auth';
 $a = $_GET['a'] ?? null;
 
@@ -39,7 +46,11 @@ switch ($c) {
     case 'incident':
         require_once __DIR__ . '/../app/controllers/IncidentController.php';
         $ctl = new IncidentController();
-        if ($a === 'create') $ctl->create(); else $ctl->index();
+        if ($a === 'create') $ctl->create();
+        elseif ($a === 'edit') $ctl->edit();
+        elseif ($a === 'delete') $ctl->delete();
+        elseif ($a === 'view') $ctl->view();
+        else $ctl->index();
         break;
         
     // NUEVA RUTA: Módulo Ciudadano (Independiente)

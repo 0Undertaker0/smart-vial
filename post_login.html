@@ -1,0 +1,428 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>SMARTVIAL</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css" rel="stylesheet">
+  <link href="../assets/css/style.css" rel="stylesheet">
+</head>
+<body>
+<nav class="navbar navbar-expand-lg navbar-dark bg-primary">
+  <div class="container-fluid">
+    <a class="navbar-brand" href="?c=dashboard">SMARTVIAL</a>
+    <div class="collapse navbar-collapse" id="navbarNav">
+      <ul class="navbar-nav ms-auto">
+                  <li class="nav-item"><a class="nav-link" href="?c=incident">Incidentes</a></li>
+                    <li class="nav-item dropdown">
+            <a class="nav-link dropdown-toggle" href="#" id="adminMenu" role="button" data-bs-toggle="dropdown" aria-expanded="false">Administración</a>
+            <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="adminMenu">
+              <li><a class="dropdown-item" href="?c=user">Usuarios</a></li>              <li><a class="dropdown-item" href="?c=role">Roles</a></li>              <li><a class="dropdown-item" href="?c=permiso">Permisos</a></li>            </ul>
+          </li>
+          
+          <li class="nav-item"><a class="nav-link" href="?c=auth&a=logout">Logout</a></li>
+              </ul>
+    </div>
+  </div>
+</nav>
+<div class="container mt-4">
+
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
+
+
+<div class="row g-3 mb-3">
+  <div class="col-md-4 col-lg-2">
+    <div class="card p-3 h-100">
+      <h6 class="text-muted mb-1">Total incidentes</h6>
+      <h2 class="mb-0">1</h2>
+    </div>
+  </div>
+
+  <div class="col-md-4 col-lg-2">
+    <div class="card p-3 h-100">
+      <h6 class="text-muted mb-1">Leves</h6>
+      <h2 class="mb-0 text-success">0</h2>
+    </div>
+  </div>
+
+  <div class="col-md-4 col-lg-2">
+    <div class="card p-3 h-100">
+      <h6 class="text-muted mb-1">Medias</h6>
+      <h2 class="mb-0 text-info">0</h2>
+    </div>
+  </div>
+
+  <div class="col-md-4 col-lg-2">
+    <div class="card p-3 h-100">
+      <h6 class="text-muted mb-1">Graves</h6>
+      <h2 class="mb-0 text-warning">1</h2>
+    </div>
+  </div>
+
+  <div class="col-md-4 col-lg-2">
+    <div class="card p-3 h-100">
+      <h6 class="text-muted mb-1">Fatales</h6>
+      <h2 class="mb-0 text-danger">0</h2>
+    </div>
+  </div>
+
+  <div class="col-md-4 col-lg-2">
+    <div class="card p-3 h-100">
+      <h6 class="text-muted mb-1">Este mes</h6>
+      <h2 class="mb-0">1</h2>
+    </div>
+  </div>
+
+  <div class="col-md-4 col-lg-2">
+    <div class="card p-3 h-100">
+      <h6 class="text-muted mb-1">Cerrados</h6>
+      <h2 class="mb-0 text-secondary">0</h2>
+    </div>
+  </div>
+</div>
+
+<div class="row mb-4">
+  <div class="col-12">
+    <div class="card p-3 shadow-sm">
+      <h5>Mapa de incidentes</h5>
+      <div id="map" style="height:350px;background:#eee; border-radius: 8px; z-index: 1;">(Cargando mapa interactivo...)</div>
+    </div>
+  </div>
+</div>
+
+<div class="row g-4 mb-4">
+  <div class="col-12 col-md-6">
+    <div class="card p-3 shadow-sm h-100">
+      <h5 class="card-title">Incidentes por Gravedad</h5>
+      <div style="position: relative; height:250px;">
+        <canvas id="chartGravedad"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-12 col-md-6">
+    <div class="card p-3 shadow-sm h-100">
+      <h5 class="card-title">Incidentes por Departamento</h5>
+      <div style="position: relative; height:250px;">
+        <canvas id="chartDepto"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-12 col-md-6">
+    <div class="card p-3 shadow-sm h-100">
+      <h5 class="card-title">Tendencia Mensual (Año Actual)</h5>
+      <div style="position: relative; height:250px;">
+        <canvas id="chartMeses"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-12 col-md-6">
+    <div class="card p-3 shadow-sm h-100">
+      <h5 class="card-title">Incidentes por Tipo de Evento</h5>
+      <div style="position: relative; height:250px;">
+        <canvas id="chartEvento"></canvas>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+
+    // ========================================================
+    // 1. CONFIGURACIÓN DEL MAPA GEOREFERENCIADO (LEAFLET)
+    // ========================================================
+    
+    // Limpiar el contenedor
+    const mapContainer = document.getElementById('map');
+    mapContainer.innerHTML = '';
+
+    // Inicializar mapa centrado predeterminadamente
+    const map = L.map('map').setView([13.3444, -88.4392], 9);
+
+    // Cargar la capa de OpenStreetMap
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        maxZoom: 19,
+        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+    }).addTo(map);
+
+    // Obtener datos inyectados desde PHP
+    const incidentesData = [{"id":3,"titulo":"se chocaron","fecha":"2026-06-18 09:32:15","gravedad":"alta","lat":"13.3371841","lng":"-88.4402313","direccion":"Residencial La Pradera, Usulut\u00e1n, Usulut\u00e1n Este, Usulut\u00e1n, 3401, El Salvador"}];
+    const marcadoresArray = [];
+
+    // Recorrer los incidentes y colocar los marcadores
+    incidentesData.forEach(incidente => {
+        const lat = parseFloat(incidente.lat);
+        const lng = parseFloat(incidente.lng);
+
+        if (!isNaN(lat) && !isNaN(lng)) {
+            const marker = L.marker([lat, lng]).addTo(map);
+            
+            // Asignar colores de Bootstrap para las insignias del Popup (acepta sinónimos)
+            let badgeColor = 'bg-secondary';
+            const gravedadStr = (incidente.gravedad || '').toLowerCase();
+            if (['baja','leve'].includes(gravedadStr)) badgeColor = 'bg-success';
+            else if (['media','moderada','moderado'].includes(gravedadStr)) badgeColor = 'bg-warning text-dark';
+            else if (['alta','grave','fatal'].includes(gravedadStr)) badgeColor = 'bg-danger';
+
+            // Construir el contenido del Popup (ID, Título, Fecha, Gravedad)
+            const popupContent = `
+                <div style="font-family: inherit; min-width: 180px;">
+                    <h6 style="margin-bottom: 5px; font-weight: bold;">ID: ${incidente.id}</h6>
+                    <p style="margin: 0 0 5px 0;"><b>Título:</b> ${incidente.titulo}</p>
+                    <p style="margin: 0 0 8px 0;"><b>Fecha:</b> ${incidente.fecha}</p>
+                    <p style="margin: 0;"><b>Gravedad:</b> <span class="badge ${badgeColor}">${incidente.gravedad.toUpperCase()}</span></p>
+                </div>
+            `;
+            
+            marker.bindPopup(popupContent);
+            marcadoresArray.push([lat, lng]);
+        }
+    });
+
+    // Ajustar el zoom y la posición para mostrar todos los marcadores existentes
+    if (marcadoresArray.length > 0) {
+        map.fitBounds(marcadoresArray, { padding: [40, 40] });
+    }
+
+
+    // ========================================================
+    // 2. CONFIGURACIÓN DE GRÁFICAS EXISTENTES (CHART.JS)
+    // ========================================================
+
+    // 1. Configuración de Incidentes por Gravedad (Doughnut)
+    // (Nota: Asegúrate de inyectar las variables $jsonGravedad, etc. en tu controlador si aún no lo están para que esto funcione)
+    if(typeof false !== 'undefined' && false) {
+        const dataGravedad = [];
+        const labelsGravedad = dataGravedad.map(item => item.gravedad || 'No definido');
+        const valuesGravedad = dataGravedad.map(item => item.total);
+        
+        new Chart(document.getElementById('chartGravedad'), {
+            type: 'doughnut',
+            data: {
+                labels: labelsGravedad,
+                datasets: [{
+                    data: valuesGravedad,
+                    backgroundColor: ['#198754', '#ffc107', '#dc3545', '#6c757d'],
+                    borderWidth: 1
+                }]
+            },
+            options: { responsive: true, maintainAspectRatio: false }
+        });
+    }
+
+    // 2. Configuración de Incidentes por Departamento (Bar Horizontal)
+    if(typeof false !== 'undefined' && false) {
+        const dataDepto = [];
+        const labelsDepto = dataDepto.map(item => item.departamento);
+        const valuesDepto = dataDepto.map(item => item.total);
+
+        new Chart(document.getElementById('chartDepto'), {
+            type: 'bar',
+            data: {
+                labels: labelsDepto,
+                datasets: [{
+                    label: 'Cantidad',
+                    data: valuesDepto,
+                    backgroundColor: '#0d6efd',
+                    borderRadius: 4
+                }]
+            },
+            options: { 
+                indexAxis: 'y',
+                responsive: true, 
+                maintainAspectRatio: false,
+                plugins: { legend: { display: false } }
+            }
+        });
+    }
+
+    // 3. Configuración de Tendencia Mensual (Line)
+    if(typeof false !== 'undefined' && false) {
+        const labelsMeses = [];
+        const valuesMeses = [];
+
+        new Chart(document.getElementById('chartMeses'), {
+            type: 'line',
+            data: {
+                labels: labelsMeses,
+                datasets: [{
+                    label: 'Total Incidentes',
+                    data: valuesMeses,
+                    borderColor: '#6f42c1',
+                    backgroundColor: 'rgba(111, 66, 193, 0.2)',
+                    borderWidth: 2,
+                    fill: true,
+                    tension: 0.3
+                }]
+            },
+            options: { 
+                responsive: true, 
+                maintainAspectRatio: false,
+                plugins: { legend: { display: false } },
+                scales: { y: { beginAtZero: true } }
+            }
+        });
+    }
+
+    // 4. Configuración de Incidentes por Tipo de Evento (Polar Area o Pie)
+    if(typeof false !== 'undefined' && false) {
+        const dataEvento = [];
+        const labelsEvento = dataEvento.map(item => item.tipo_evento);
+        const valuesEvento = dataEvento.map(item => item.total);
+
+        new Chart(document.getElementById('chartEvento'), {
+            type: 'pie',
+            data: {
+                labels: labelsEvento,
+                datasets: [{
+                    data: valuesEvento,
+                    backgroundColor: ['#0dcaf0', '#fd7e14', '#20c997', '#d63384', '#0a58ca'],
+                    borderWidth: 1
+                }]
+            },
+            options: { responsive: true, maintainAspectRatio: false }
+        });
+    }
+});
+</script>
+
+</div>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<script src="../../assets/js/app.js"></script>
+<script>
+// Variable global para el mapa
+var mapa = null;
+var marcador = null;
+
+function obtenerUbicacion() {
+  console.log("✓ obtenerUbicacion() ejecutada");
+  var btn = event.target.closest('button');
+  
+  if (!navigator.geolocation) {
+    alert('Tu navegador no soporta geolocalización.');
+    return;
+  }
+  
+  var textoOriginal = btn.innerHTML;
+  btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Buscando ubicación...';
+  btn.disabled = true;
+  
+  navigator.geolocation.getCurrentPosition(
+    function(position) {
+      console.log("✓ Ubicación obtenida:", position.coords.latitude, position.coords.longitude);
+      
+      var lat = position.coords.latitude;
+      var lng = position.coords.longitude;
+      
+      // Llenar campos
+      document.getElementById('lat').value = lat;
+      document.getElementById('lng').value = lng;
+      
+      // Mostrar mapa
+      mostrarMapa(lat, lng);
+      
+      // Feedback visual
+      btn.innerHTML = '<i class="bi bi-check-circle"></i> ¡Ubicación capturada!';
+      btn.classList.remove('btn-outline-secondary');
+      btn.classList.add('btn-success', 'text-white');
+      
+      setTimeout(function(){
+        btn.innerHTML = textoOriginal;
+        btn.disabled = false;
+        btn.classList.remove('btn-success', 'text-white');
+        btn.classList.add('btn-outline-secondary');
+      }, 3000);
+    },
+    function(error) {
+      console.error("❌ Error GPS:", error.code);
+      var msg = "Error al obtener la ubicación";
+      
+      switch(error.code) {
+        case 1:
+          msg = "Permiso denegado. Ve a los permisos de tu navegador y permite el acceso a ubicación.";
+          break;
+        case 2:
+          msg = "La información de ubicación no está disponible.";
+          break;
+        case 3:
+          msg = "Se agotó el tiempo esperando la ubicación.";
+          break;
+      }
+      
+      alert(msg);
+      btn.innerHTML = textoOriginal;
+      btn.disabled = false;
+    },
+    { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+  );
+}
+
+function mostrarMapa(lat, lng) {
+  var mapContainer = document.getElementById('mapContainer');
+  var mapElement = document.getElementById('map');
+  
+  // Mostrar contenedor del mapa
+  mapContainer.style.display = 'block';
+  
+  // Si el mapa ya existe, eliminarlo
+  if (mapa) {
+    mapa.remove();
+  }
+  
+  // Crear mapa
+  mapa = L.map('map').setView([lat, lng], 17);
+  
+  // Agregar OpenStreetMap
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    attribution: '© OpenStreetMap contributors',
+    maxZoom: 19
+  }).addTo(mapa);
+  
+  // Agregar marcador
+  if (marcador) {
+    mapa.removeLayer(marcador);
+  }
+  
+  marcador = L.marker([lat, lng], {
+    icon: L.icon({
+      iconUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon.png',
+      shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png',
+      iconSize: [25, 41],
+      shadowSize: [41, 41]
+    })
+  }).addTo(mapa).bindPopup('Cargando dirección...');
+
+  marcador.openPopup();
+
+  // Llamar a Nominatim para reverse geocoding (OpenStreetMap)
+  var nominatimEmail = 'dev@smartvial.local';
+  fetch('https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat='+lat+'&lon='+lng+'&accept-language=es&email='+encodeURIComponent(nominatimEmail))
+    .then(function(resp){ return resp.json(); })
+    .then(function(data){
+      var display = data.display_name || '';
+      // Poner la dirección en el input
+      var direccionInput = document.getElementById('direccion');
+      if (direccionInput) direccionInput.value = display;
+      // Actualizar popup del marcador
+      marcador.setPopupContent(display + '<br>Lat: ' + lat.toFixed(6) + '<br>Lng: ' + lng.toFixed(6));
+    })
+    .catch(function(err){
+      console.warn('Reverse geocoding falló', err);
+    });
+
+  console.log("✓ Mapa mostrado en:", lat, lng);
+}
+</script>
+
+</body>
+</html>

@@ -6,9 +6,10 @@
         <h4 class="card-title">Iniciar sesión</h4>
         <?php if (!empty($error)): ?><div class="alert alert-danger"><?= e($error) ?></div><?php endif; ?>
         <form method="post" action="">
+          <?= csrf_input() ?>
           <div class="mb-3">
             <label>Email</label>
-            <input class="form-control" name="email" type="email" required>
+            <input class="form-control" name="email" type="email" required value="<?= htmlspecialchars($_POST['email'] ?? '') ?>">
           </div>
           <div class="mb-3">
             <label>Contraseña</label>
